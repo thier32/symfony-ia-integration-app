@@ -1,0 +1,216 @@
+{
+  "name": "Stock Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "fromEmail": "=sender12@kutiwa.com",
+        "toEmail": "={{$json.email}}",
+        "subject": "Stock Status",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        336,
+        -64
+      ],
+      "id": "64e69ca9-3630-4c39-96c7-3d4a6c4dcbb2",
+      "name": "Send an Email",
+      "webhookId": "686180e5-8e2e-4643-86d4-df1521570451",
+      "credentials": {
+        "smtp": {
+          "id": "ghHPaGLvMYvqZNIa",
+          "name": "SMTP account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "member",
+          "mode": "list",
+          "cachedResultName": "member"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "email",
+              "condition": "IS NOT NULL"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -96,
+        80
+      ],
+      "id": "b6487607-1dc3-4c1a-86b3-b36e7af1e473",
+      "name": "Retreive Recipients",
+      "credentials": {
+        "mySql": {
+          "id": "AVxPKJiNfDWvt5IC",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es un analyste de données expert en supply chain, gestion des stocks et logistique prédictive.\n\nVoici la liste de nos articles en stock sous forme de données brutes :\n{{ JSON.stringify($json) }}\n\n### Mission :\n1. Analyse les données fournies globalement et individuellement pour chaque produit.\n2. Identifie les tendances clés (ex: produits à forte rotation, articles dormants, risques de rupture de stock, surstockage).\n3. Effectue une prévision pour CHAQUE article (ex: vitesse d'écoulement estimée, alerte de réapprovisionnement).\n\n### Format de sortie requis :\nTu devras impérativement répondre au format JSON brut, sans mise en forme Markdown (pas de blocs ```json ... ```), sous la forme d'un tableau d'objets structuré exactement comme ceci :\n\n[\n  {\n    \"sku\": \"Extraire l'ID, le SKU ou la référence unique de l'article\",\n    \"name\": \"Nom de l'article / Produit\",\n    \"analyse_stock\": \"Résumé court du profil de rotation de l'article (ex: Vitesse d'écoulement élevée, Dormant depuis 3 mois)\",\n    \"prevision\": \"Prédiction sur l'évolution du stock (ex: Risque de rupture imminent sous 4 jours / Risque de surstockage)\",\n    \"action_recommandee\": \"Action concrète personnalisée à mener (ex: Déclencher un réapprovisionnement de 150 unités / Lancer une promotion de déstockage)\",\n    \"alerte_interne\": \"Rédige une courte note d'alerte personnalisée destinée au gestionnaire d'entrepôt ou à l'équipe des achats concernant cet article\"\n  }\n]",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -32,
+        -144
+      ],
+      "id": "af03e922-cc6c-4805-bafd-f4d49cdc4636",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "qwen2.5:1.5b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        400,
+        160
+      ],
+      "id": "87b604f8-a2c6-4322-92d8-1da8db1860e0",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "6IFUAXS2W22Dv5E0",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM product p left join  stock_movement s on p.id = s.product_id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -288,
+        -144
+      ],
+      "id": "9417d870-60dc-44bb-a254-b3714f692692",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "mySql": {
+          "id": "AVxPKJiNfDWvt5IC",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "42274bd3-2419-4447-8fbc-03e29e4137b4",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -560,
+        0
+      ],
+      "id": "44b91180-42b8-494f-93fc-5a583fc4784b",
+      "name": "Webhook",
+      "webhookId": "42274bd3-2419-4447-8fbc-03e29e4137b4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Send an Email": {
+      "main": [
+        []
+      ]
+    },
+    "Retreive Recipients": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Retreive Recipients",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c97051a9-1932-4ca1-94b3-d87b67c8ce94",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a614c662f9afbf52b5c36b42fb9a347408d36b22304fec39945c7046dabbf45c"
+  },
+  "id": "7h1BKFMaclUinDHk",
+  "tags": []
+}
